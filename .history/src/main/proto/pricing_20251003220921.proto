@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package com.srviswan.basketpricing.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.srviswan.basketpricing.grpc";
+option java_outer_classname = "PricingProto";
+
+// Price snapshot message
+message PriceSnapshot {
+  string symbol = 1;
+  double bid = 2;
+  double ask = 3;
+  double last = 4;
+  int64 timestamp = 5; // Unix timestamp in milliseconds
+}
+
+// Request to get prices for multiple symbols
+message GetPricesRequest {
+  repeated string symbols = 1;
+}
+
+// Response containing price snapshots
+message GetPricesResponse {
+  repeated PriceSnapshot prices = 1;
+}
+
+// Request to subscribe to price updates
+message SubscribeRequest {
+  repeated string symbols = 1;
+}
+
+// Response for subscription
+message SubscribeResponse {
+  repeated string subscribed_symbols = 1;
+  int32 total_subscriptions = 2;
+  bool success = 3;
+  string message = 4;
+}
+
+// Request to unsubscribe from price updates
+message UnsubscribeRequest {
+  repeated string symbols = 1;
+}
+
+// Response for unsubscription
+message UnsubscribeResponse {
+  repeated string unsubscribed_symbols = 1;
+  int32 remaining_subscriptions = 2;
+  bool success = 3;
+  string message = 4;
+}
+
+// Request to get current subscriptions
+message GetSubscriptionsRequest {
+  // Empty request
+}
+
+// Response with current subscriptions
+message GetSubscriptionsResponse {
+  repeated string subscribed_symbols = 1;
+  int32 count = 2;
+}
+
+// Price update stream message
+message PriceUpdate {
+  string symbol = 1;
+  PriceSnapshot snapshot = 2;
+  int64 update_timestamp = 3;
+}
+
+// Request to stream price updates
+message StreamPricesRequest {
+  repeated string symbols = 1;
+}
+
+// Service definition
+service PricingService {
+  // Get current prices for symbols
+  rpc GetPrices(GetPricesRequest) returns (GetPricesResponse);
+  
+  // Subscribe to price updates
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
+  
+  // Unsubscribe from price updates
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+  
+  // Get current subscriptions
+  rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
+  
+  // Stream real-time price updates
+  rpc StreamPrices(StreamPricesRequest) returns (stream PriceUpdate);
+}

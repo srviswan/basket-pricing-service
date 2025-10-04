@@ -1,0 +1,28 @@
+server:
+  port: 0  # Random port for tests
+
+# gRPC Configuration for tests
+grpc:
+  server:
+    port: 0  # Random port for tests
+
+# Test-specific configuration
+spring:
+  cache:
+    type: simple  # Use simple cache for tests
+  profiles:
+    active: test
+
+# Disable EMA provider for tests
+refinitiv:
+  host: localhost
+  port: 14002
+  user: testuser
+  service: ELEKTRON_DD
+
+# Test logging
+logging:
+  level:
+    com.srviswan.basketpricing: DEBUG
+    org.springframework: WARN
+    com.refinitiv: WARN

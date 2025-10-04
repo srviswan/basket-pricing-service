@@ -1,0 +1,21 @@
+FROM maven:3.9.8-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+# Pre-fetch dependencies (will fail for Refinitiv deps unless installed to a repo)
+RUN mvn -q -e -DskipTests dependency:go-offline || true
+COPY src ./src
+RUN mvn -q -DskipTests package
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /app/target/*.jar /app/app.jar
+
+# Env variables for runtime configuration
+ENV REFINITIV_HOST="" \
+    REFINITIV_PORT="14002" \
+    REFINITIV_USER="" \
+    REFINITIV_RICS="IBM.N,MSFT.O" \
+    REFINITIV_SERVICE="ELEKTRON_DD"
+
+ENTRYPOINT ["java","-jar","/app/app.jar"]
+

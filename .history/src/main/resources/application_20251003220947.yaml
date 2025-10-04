@@ -1,0 +1,83 @@
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    max-connections: 8192
+    accept-count: 100
+    connection-timeout: 20000
+
+# gRPC Configuration
+grpc:
+  server:
+    port: 9090
+    max-inbound-message-size: 4MB
+    max-inbound-metadata-size: 8KB
+    keep-alive-time: 30s
+    keep-alive-timeout: 5s
+    keep-alive-without-calls: true
+    permit-keep-alive-without-calls: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Resilience4j configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      marketDataProvider:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+  ratelimiter:
+    instances:
+      marketDataProvider:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 100ms
+      pricingApi:
+        limit-for-period: 200
+        limit-refresh-period: 1s
+        timeout-duration: 50ms
+  retry:
+    instances:
+      marketDataProvider:
+        max-attempts: 3
+        wait-duration: 100ms
+        retry-on-exception: java.lang.Exception
+
+# Caching configuration
+spring:
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=30s,expireAfterAccess=10s
+
+refinitiv:
+  host: ${REFINITIV_HOST:}
+  port: ${REFINITIV_PORT:14002}
+  user: ${REFINITIV_USER:}
+  service: ${REFINITIV_SERVICE:ELEKTRON_DD}
+
+logging:
+  level:
+    com.srviswan.basketpricing: INFO
+    com.refinitiv: WARN
+    io.github.resilience4j: DEBUG
+
+

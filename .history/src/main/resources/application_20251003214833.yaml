@@ -1,0 +1,16 @@
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+refinitiv:
+  host: ${REFINITIV_HOST:}
+  port: ${REFINITIV_PORT:14002}
+  user: ${REFINITIV_USER:}
+  service: ${REFINITIV_SERVICE:ELEKTRON_DD}
+
+

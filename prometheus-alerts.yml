@@ -1,0 +1,153 @@
+groups:
+  - name: pricing-service-alerts
+    rules:
+      # Connection Health
+      - alert: PricingServiceDown
+        expr: up{job="basket-pricing-service"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pricing service is down"
+          description: "Basket pricing service has been down for more than 30 seconds"
+
+      - alert: MarketDataConnectionDown
+        expr: pricing_connection_status == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Market data connection is down"
+          description: "Connection to Refinitiv market data provider has been down for more than 1 minute"
+
+      # Performance Alerts
+      - alert: HighPriceUpdateLatency
+        expr: histogram_quantile(0.95, pricing_update_latency_seconds) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High price update latency"
+          description: "95th percentile price update latency is {{ $value }}s (threshold: 1s)"
+
+      - alert: HighApiResponseTime
+        expr: histogram_quantile(0.95, pricing_api_response_time_seconds) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile API response time is {{ $value }}s (threshold: 0.5s)"
+
+      # Data Quality Alerts
+      - alert: NoPriceUpdates
+        expr: rate(pricing_updates_total[5m]) == 0 and pricing_subscriptions_active > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No price updates received"
+          description: "No price updates received in the last 5 minutes despite {{ $value }} active subscriptions"
+
+      - alert: LowPriceUpdateRate
+        expr: rate(pricing_updates_total[5m]) < 0.1 and pricing_subscriptions_active > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low price update rate"
+          description: "Price update rate is {{ $value }} updates/sec (threshold: 0.1/sec)"
+
+      # Subscription Health
+      - alert: NoActiveSubscriptions
+        expr: pricing_subscriptions_active == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No active subscriptions"
+          description: "No active market data subscriptions for more than 10 minutes"
+
+      - alert: SubscriptionCountDropped
+        expr: decrease(pricing_subscriptions_active[10m]) > 0
+        for: 0s
+        labels:
+          severity: info
+        annotations:
+          summary: "Subscription count dropped"
+          description: "Active subscriptions decreased by {{ $value }} in the last 10 minutes"
+
+      # Error Rate Alerts
+      - alert: HighConnectionErrorRate
+        expr: rate(pricing_connection_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High connection error rate"
+          description: "Connection error rate is {{ $value }} errors/sec (threshold: 0.1/sec)"
+
+      - alert: HighApiErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value }} errors/sec (threshold: 0.01/sec)"
+
+      # Resource Alerts
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes / jvm_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 85%)"
+
+      - alert: HighCpuUsage
+        expr: system_cpu_usage > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanizePercentage }} (threshold: 80%)"
+
+      # Resilience Alerts
+      - alert: CircuitBreakerOpen
+        expr: resilience4j_circuitbreaker_state{name="marketDataProvider", state="OPEN"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker is open"
+          description: "Market data provider circuit breaker has been open for more than 1 minute"
+
+      - alert: HighBackpressureUtilization
+        expr: pricing_backpressure_utilization > 0.8
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High backpressure utilization"
+          description: "Backpressure queue utilization is {{ $value | humanizePercentage }} (threshold: 80%)"
+
+      - alert: HighDroppedUpdates
+        expr: rate(pricing_backpressure_dropped[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of dropped updates"
+          description: "Dropped updates rate is {{ $value }} updates/sec (threshold: 10/sec)"
+
+      - alert: RateLimiterRejected
+        expr: rate(resilience4j_ratelimiter_calls_total{kind="failed"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate limiter rejections"
+          description: "Rate limiter rejection rate is {{ $value }} rejections/sec (threshold: 0.1/sec)"
