@@ -1,9 +1,7 @@
 package com.srviswan.basketpricing.testing;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -22,7 +20,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class LoadTestSuite {
 
     private static final String REST_BASE_URL = "http://localhost:8080/api/prices";
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     
     private final LoadTestResults results = new LoadTestResults();
 

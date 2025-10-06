@@ -1,9 +1,7 @@
 package com.srviswan.basketpricing.testing;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -25,7 +23,6 @@ public class StressTestSuite {
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     
     private final StressTestResults results = new StressTestResults();
 
@@ -109,7 +106,12 @@ public class StressTestSuite {
             }
             
             // Keep responses in memory to stress the system
-            Thread.sleep(5000);
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Thread interrupted during stress test");
+            }
         });
     }
 
@@ -790,10 +792,6 @@ public class StressTestSuite {
      */
     private void runStressTest(StressTestConfig config, Runnable stressOperation) {
         log.info("Running stress test: {}", config.getTestName());
-        
-        HttpClient httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
         
         AtomicLong totalRequests = new AtomicLong(0);
         AtomicLong successfulRequests = new AtomicLong(0);

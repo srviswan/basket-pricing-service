@@ -15,7 +15,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Comprehensive regression test suite for the basket pricing service.
@@ -30,6 +29,28 @@ public class RegressionTestSuite {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    
+    /**
+     * Helper method to wrap test operations with proper exception handling
+     */
+    private void runTestWithExceptionHandling(String testName, TestOperation testOperation) {
+        runTest(testName, () -> {
+            try {
+                testOperation.execute();
+            } catch (IOException | InterruptedException e) {
+                log.error("Error in {} test", testName, e);
+                assert false : testName + " test failed: " + e.getMessage();
+            }
+        });
+    }
+    
+    /**
+     * Functional interface for test operations that can throw exceptions
+     */
+    @FunctionalInterface
+    private interface TestOperation {
+        void execute() throws IOException, InterruptedException, com.fasterxml.jackson.core.JsonProcessingException;
+    }
     
     private final TestResults testResults = new TestResults();
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
@@ -103,57 +124,73 @@ public class RegressionTestSuite {
         log.info("Testing GET /api/prices endpoint");
         
         // Test 1: Valid symbols
-        runTest("GET prices - valid symbols", () -> {
-            String symbols = "IBM.N,MSFT.O,AAPL.O";
-            String url = REST_BASE_URL + "?symbols=" + symbols;
-            
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .GET()
-                    .header("Accept", "application/json")
-                    .build();
-            
-            HttpResponse<String> response = HTTP_CLIENT.send(request, 
-                    HttpResponse.BodyHandlers.ofString());
-            
-            assert response.statusCode() == 200 : "Expected 200, got " + response.statusCode();
-            
-            Map<String, Object> prices = OBJECT_MAPPER.readValue(response.body(), Map.class);
-            assert prices != null : "Response should not be null";
-            
-            log.info("GET prices test passed - received {} price snapshots", prices.size());
+        runTestWithExceptionHandling("GET prices - valid symbols", () -> {
+            try {
+                String symbols = "IBM.N,MSFT.O,AAPL.O";
+                String url = REST_BASE_URL + "?symbols=" + symbols;
+                
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .GET()
+                        .header("Accept", "application/json")
+                        .build();
+                
+                HttpResponse<String> response = HTTP_CLIENT.send(request, 
+                        HttpResponse.BodyHandlers.ofString());
+                
+                assert response.statusCode() == 200 : "Expected 200, got " + response.statusCode();
+                
+                @SuppressWarnings("unchecked")
+                Map<String, Object> prices = OBJECT_MAPPER.readValue(response.body(), Map.class);
+                assert prices != null : "Response should not be null";
+                
+                log.info("GET prices test passed - received {} price snapshots", prices.size());
+            } catch (IOException | InterruptedException e) {
+                log.error("Error in GET prices test", e);
+                assert false : "GET prices test failed: " + e.getMessage();
+            }
         });
         
         // Test 2: Single symbol
-        runTest("GET prices - single symbol", () -> {
-            String url = REST_BASE_URL + "?symbols=IBM.N";
-            
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .GET()
-                    .build();
-            
-            HttpResponse<String> response = HTTP_CLIENT.send(request, 
-                    HttpResponse.BodyHandlers.ofString());
-            
-            assert response.statusCode() == 200 : "Expected 200, got " + response.statusCode();
+        runTestWithExceptionHandling("GET prices - single symbol", () -> {
+            try {
+                String url = REST_BASE_URL + "?symbols=IBM.N";
+                
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .GET()
+                        .build();
+                
+                HttpResponse<String> response = HTTP_CLIENT.send(request, 
+                        HttpResponse.BodyHandlers.ofString());
+                
+                assert response.statusCode() == 200 : "Expected 200, got " + response.statusCode();
+            } catch (IOException | InterruptedException e) {
+                log.error("Error in single symbol test", e);
+                assert false : "Single symbol test failed: " + e.getMessage();
+            }
         });
         
         // Test 3: No symbols parameter
-        runTest("GET prices - no symbols parameter", () -> {
-            String url = REST_BASE_URL;
-            
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .GET()
-                    .build();
-            
-            HttpResponse<String> response = HTTP_CLIENT.send(request, 
-                    HttpResponse.BodyHandlers.ofString());
-            
-            // Should handle gracefully (400 or empty response)
-            assert response.statusCode() == 400 || response.statusCode() == 200 : 
-                "Expected 400 or 200, got " + response.statusCode();
+        runTestWithExceptionHandling("GET prices - no symbols parameter", () -> {
+            try {
+                String url = REST_BASE_URL;
+                
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .GET()
+                        .build();
+                
+                HttpResponse<String> response = HTTP_CLIENT.send(request, 
+                        HttpResponse.BodyHandlers.ofString());
+                
+                // Should handle gracefully (400 or empty response)
+                assert response.statusCode() == 400 || response.statusCode() == 200 : 
+                        "Expected 400 or 200, got " + response.statusCode();
+            } catch (IOException | InterruptedException e) {
+                log.error("Error in no symbols parameter test", e);
+                assert false : "No symbols parameter test failed: " + e.getMessage();
+            }
         });
     }
 
@@ -164,28 +201,34 @@ public class RegressionTestSuite {
         log.info("Testing POST /api/prices/subscribe endpoint");
         
         // Test 1: Valid subscription
-        runTest("Subscribe - valid symbols", () -> {
-            String symbols = "IBM.N,MSFT.O";
-            String url = REST_BASE_URL + "/subscribe?symbols=" + symbols;
-            
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .POST(HttpRequest.BodyPublishers.noBody())
-                    .header("Content-Type", "application/json")
-                    .build();
-            
-            HttpResponse<String> response = HTTP_CLIENT.send(request, 
-                    HttpResponse.BodyHandlers.ofString());
-            
-            assert response.statusCode() == 200 : "Expected 200, got " + response.statusCode();
-            
-            Map<String, Object> result = OBJECT_MAPPER.readValue(response.body(), Map.class);
-            assert result.containsKey("subscribed") : "Response should contain 'subscribed'";
-            assert result.containsKey("totalSubscriptions") : "Response should contain 'totalSubscriptions'";
+        runTestWithExceptionHandling("Subscribe - valid symbols", () -> {
+            try {
+                String symbols = "IBM.N,MSFT.O";
+                String url = REST_BASE_URL + "/subscribe?symbols=" + symbols;
+                
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .POST(HttpRequest.BodyPublishers.noBody())
+                        .header("Content-Type", "application/json")
+                        .build();
+                
+                HttpResponse<String> response = HTTP_CLIENT.send(request, 
+                        HttpResponse.BodyHandlers.ofString());
+                
+                assert response.statusCode() == 200 : "Expected 200, got " + response.statusCode();
+                
+                @SuppressWarnings("unchecked")
+                Map<String, Object> result = OBJECT_MAPPER.readValue(response.body(), Map.class);
+                assert result.containsKey("subscribed") : "Response should contain 'subscribed'";
+                assert result.containsKey("totalSubscriptions") : "Response should contain 'totalSubscriptions'";
+            } catch (IOException | InterruptedException e) {
+                log.error("Error in valid subscription test", e);
+                assert false : "Valid subscription test failed: " + e.getMessage();
+            }
         });
         
         // Test 2: Duplicate subscription
-        runTest("Subscribe - duplicate symbols", () -> {
+        runTestWithExceptionHandling("Subscribe - duplicate symbols", () -> {
             String symbols = "IBM.N"; // Already subscribed above
             String url = REST_BASE_URL + "/subscribe?symbols=" + symbols;
             
@@ -210,7 +253,7 @@ public class RegressionTestSuite {
         log.info("Testing DELETE /api/prices/unsubscribe endpoint");
         
         // Test 1: Valid unsubscription
-        runTest("Unsubscribe - valid symbols", () -> {
+        runTestWithExceptionHandling("Unsubscribe - valid symbols", () -> {
             String symbols = "MSFT.O";
             String url = REST_BASE_URL + "/unsubscribe?symbols=" + symbols;
             
@@ -224,13 +267,14 @@ public class RegressionTestSuite {
             
             assert response.statusCode() == 200 : "Expected 200, got " + response.statusCode();
             
+            @SuppressWarnings("unchecked")
             Map<String, Object> result = OBJECT_MAPPER.readValue(response.body(), Map.class);
             assert result.containsKey("unsubscribed") : "Response should contain 'unsubscribed'";
             assert result.containsKey("remainingSubscriptions") : "Response should contain 'remainingSubscriptions'";
         });
         
         // Test 2: Unsubscribe from non-existent symbol
-        runTest("Unsubscribe - non-existent symbol", () -> {
+        runTestWithExceptionHandling("Unsubscribe - non-existent symbol", () -> {
             String symbols = "NONEXISTENT.SYMBOL";
             String url = REST_BASE_URL + "/unsubscribe?symbols=" + symbols;
             
@@ -254,7 +298,7 @@ public class RegressionTestSuite {
     private void testGetSubscriptionsEndpoint() {
         log.info("Testing GET /api/prices/subscriptions endpoint");
         
-        runTest("Get subscriptions", () -> {
+        runTestWithExceptionHandling("Get subscriptions", () -> {
             String url = REST_BASE_URL + "/subscriptions";
             
             HttpRequest request = HttpRequest.newBuilder()
@@ -267,10 +311,12 @@ public class RegressionTestSuite {
             
             assert response.statusCode() == 200 : "Expected 200, got " + response.statusCode();
             
+            @SuppressWarnings("unchecked")
             Map<String, Object> result = OBJECT_MAPPER.readValue(response.body(), Map.class);
             assert result.containsKey("subscribedSymbols") : "Response should contain 'subscribedSymbols'";
             assert result.containsKey("count") : "Response should contain 'count'";
             
+            @SuppressWarnings("unchecked")
             List<String> symbols = (List<String>) result.get("subscribedSymbols");
             Integer count = (Integer) result.get("count");
             assert symbols.size() == count : "Symbol count mismatch";
@@ -283,7 +329,7 @@ public class RegressionTestSuite {
     private void testInvalidSymbols() {
         log.info("Testing invalid symbols handling");
         
-        runTest("Invalid symbols - special characters", () -> {
+        runTestWithExceptionHandling("Invalid symbols - special characters", () -> {
             String symbols = "INVALID@SYMBOL,ANOTHER#SYMBOL";
             String url = REST_BASE_URL + "?symbols=" + symbols;
             
@@ -300,7 +346,7 @@ public class RegressionTestSuite {
                 "Expected 400 or 200, got " + response.statusCode();
         });
         
-        runTest("Invalid symbols - empty strings", () -> {
+        runTestWithExceptionHandling("Invalid symbols - empty strings", () -> {
             String symbols = ",,EMPTY,,";
             String url = REST_BASE_URL + "?symbols=" + symbols;
             
@@ -323,7 +369,7 @@ public class RegressionTestSuite {
     private void testEmptyRequests() {
         log.info("Testing empty request handling");
         
-        runTest("Empty symbols parameter", () -> {
+        runTestWithExceptionHandling("Empty symbols parameter", () -> {
             String url = REST_BASE_URL + "?symbols=";
             
             HttpRequest request = HttpRequest.newBuilder()
@@ -338,7 +384,7 @@ public class RegressionTestSuite {
                 "Expected 200 or 400, got " + response.statusCode();
         });
         
-        runTest("Whitespace-only symbols", () -> {
+        runTestWithExceptionHandling("Whitespace-only symbols", () -> {
             String url = REST_BASE_URL + "?symbols=%20%20%20";
             
             HttpRequest request = HttpRequest.newBuilder()
@@ -360,7 +406,7 @@ public class RegressionTestSuite {
     private void testMalformedRequests() {
         log.info("Testing malformed request handling");
         
-        runTest("Malformed JSON in request body", () -> {
+        runTestWithExceptionHandling("Malformed JSON in request body", () -> {
             String url = REST_BASE_URL + "/subscribe";
             String malformedJson = "{invalid json}";
             
@@ -385,7 +431,7 @@ public class RegressionTestSuite {
     private void testServiceUnavailable() {
         log.info("Testing service unavailable scenarios");
         
-        runTest("Service unavailable - wrong port", () -> {
+        runTestWithExceptionHandling("Service unavailable - wrong port", () -> {
             String url = "http://localhost:9999/api/prices?symbols=IBM.N";
             
             HttpRequest request = HttpRequest.newBuilder()
@@ -394,8 +440,7 @@ public class RegressionTestSuite {
                     .build();
             
             try {
-                HttpResponse<String> response = HTTP_CLIENT.send(request, 
-                        HttpResponse.BodyHandlers.ofString());
+                HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
                 // If we get here, the test should fail
                 assert false : "Expected connection failure";
             } catch (IOException e) {
@@ -411,7 +456,7 @@ public class RegressionTestSuite {
     private void testLargeSymbolList() {
         log.info("Testing large symbol list handling");
         
-        runTest("Large symbol list - 100 symbols", () -> {
+        runTestWithExceptionHandling("Large symbol list - 100 symbols", () -> {
             List<String> symbols = new ArrayList<>();
             for (int i = 1; i <= 100; i++) {
                 symbols.add("SYMBOL" + String.format("%03d", i) + ".N");
@@ -440,7 +485,7 @@ public class RegressionTestSuite {
     private void testSpecialCharacters() {
         log.info("Testing special characters in symbols");
         
-        runTest("Special characters - URL encoding", () -> {
+        runTestWithExceptionHandling("Special characters - URL encoding", () -> {
             String symbols = "SYMBOL%20WITH%20SPACES.N,SYMBOL-WITH-DASH.N";
             String url = REST_BASE_URL + "?symbols=" + symbols;
             
@@ -463,7 +508,7 @@ public class RegressionTestSuite {
     private void testLongSymbolNames() {
         log.info("Testing long symbol names");
         
-        runTest("Long symbol names", () -> {
+        runTestWithExceptionHandling("Long symbol names", () -> {
             String longSymbol = "A".repeat(100) + ".N";
             String url = REST_BASE_URL + "?symbols=" + longSymbol;
             
@@ -487,7 +532,7 @@ public class RegressionTestSuite {
     private void testDuplicateSymbols() {
         log.info("Testing duplicate symbols handling");
         
-        runTest("Duplicate symbols in request", () -> {
+        runTestWithExceptionHandling("Duplicate symbols in request", () -> {
             String symbols = "IBM.N,MSFT.O,IBM.N,MSFT.O";
             String url = REST_BASE_URL + "?symbols=" + symbols;
             
@@ -501,6 +546,7 @@ public class RegressionTestSuite {
             
             assert response.statusCode() == 200 : "Expected 200, got " + response.statusCode();
             
+            @SuppressWarnings("unchecked")
             Map<String, Object> prices = OBJECT_MAPPER.readValue(response.body(), Map.class);
             // Should deduplicate or handle gracefully
             assert prices != null : "Response should not be null";
@@ -513,7 +559,7 @@ public class RegressionTestSuite {
     private void testConcurrentRequests() {
         log.info("Testing concurrent request handling");
         
-        runTest("Concurrent requests - 10 simultaneous", () -> {
+        runTestWithExceptionHandling("Concurrent requests - 10 simultaneous", () -> {
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             
             for (int i = 0; i < 10; i++) {
@@ -554,7 +600,7 @@ public class RegressionTestSuite {
     private void testConcurrentSubscriptions() {
         log.info("Testing concurrent subscription handling");
         
-        runTest("Concurrent subscriptions", () -> {
+        runTestWithExceptionHandling("Concurrent subscriptions", () -> {
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             
             for (int i = 0; i < 5; i++) {
@@ -594,7 +640,7 @@ public class RegressionTestSuite {
     private void testRaceConditions() {
         log.info("Testing race condition scenarios");
         
-        runTest("Race condition - subscribe and unsubscribe", () -> {
+        runTestWithExceptionHandling("Race condition - subscribe and unsubscribe", () -> {
             String symbol = "RACE.TEST";
             
             // Start subscribe and unsubscribe simultaneously
@@ -636,7 +682,7 @@ public class RegressionTestSuite {
     private void testSubscriptionConsistency() {
         log.info("Testing subscription consistency");
         
-        runTest("Subscription consistency", () -> {
+        runTestWithExceptionHandling("Subscription consistency", () -> {
             String symbol = "CONSISTENCY.TEST";
             
             // Subscribe
@@ -661,7 +707,9 @@ public class RegressionTestSuite {
                     HttpResponse.BodyHandlers.ofString());
             assert subscriptionsResponse.statusCode() == 200 : "Get subscriptions failed";
             
+            @SuppressWarnings("unchecked")
             Map<String, Object> result = OBJECT_MAPPER.readValue(subscriptionsResponse.body(), Map.class);
+            @SuppressWarnings("unchecked")
             List<String> symbols = (List<String>) result.get("subscribedSymbols");
             assert symbols.contains(symbol) : "Symbol should be in subscriptions list";
             
@@ -686,7 +734,7 @@ public class RegressionTestSuite {
     private void testPriceDataConsistency() {
         log.info("Testing price data consistency");
         
-        runTest("Price data consistency", () -> {
+        runTestWithExceptionHandling("Price data consistency", () -> {
             String symbol = "IBM.N";
             String url = REST_BASE_URL + "?symbols=" + symbol;
             
@@ -704,7 +752,8 @@ public class RegressionTestSuite {
                 
                 assert response.statusCode() == 200 : "Request failed";
                 
-                Map<String, Object> prices = OBJECT_MAPPER.readValue(response.body(), Map.class);
+                @SuppressWarnings("unchecked")
+            Map<String, Object> prices = OBJECT_MAPPER.readValue(response.body(), Map.class);
                 responses.add(prices);
                 
                 Thread.sleep(100); // Small delay between requests
@@ -726,7 +775,7 @@ public class RegressionTestSuite {
     private void testBackpressureHandling() {
         log.info("Testing backpressure handling");
         
-        runTest("Backpressure handling", () -> {
+        runTestWithExceptionHandling("Backpressure handling", () -> {
             // Subscribe to multiple symbols to generate updates
             String symbols = "IBM.N,MSFT.O,AAPL.O,GOOGL.O,AMZN.O";
             String subscribeUrl = REST_BASE_URL + "/subscribe?symbols=" + symbols;
@@ -741,9 +790,11 @@ public class RegressionTestSuite {
             assert subscribeResponse.statusCode() == 200 : "Subscribe failed";
             
             // Check backpressure status in response
+            @SuppressWarnings("unchecked")
             Map<String, Object> result = OBJECT_MAPPER.readValue(subscribeResponse.body(), Map.class);
             assert result.containsKey("backpressureStatus") : "Response should contain backpressure status";
             
+            @SuppressWarnings("unchecked")
             Map<String, Object> backpressureStatus = (Map<String, Object>) result.get("backpressureStatus");
             assert backpressureStatus.containsKey("queueUtilization") : "Should contain queue utilization";
             assert backpressureStatus.containsKey("processedUpdates") : "Should contain processed updates";
@@ -759,7 +810,7 @@ public class RegressionTestSuite {
     private void testResponseTimeRegression() {
         log.info("Testing response time regression");
         
-        runTest("Response time regression", () -> {
+        runTestWithExceptionHandling("Response time regression", () -> {
             String symbols = "IBM.N,MSFT.O";
             String url = REST_BASE_URL + "?symbols=" + symbols;
             
@@ -802,7 +853,7 @@ public class RegressionTestSuite {
     private void testMemoryUsageRegression() {
         log.info("Testing memory usage regression");
         
-        runTest("Memory usage regression", () -> {
+        runTestWithExceptionHandling("Memory usage regression", () -> {
             Runtime runtime = Runtime.getRuntime();
             long initialMemory = runtime.totalMemory() - runtime.freeMemory();
             
@@ -840,6 +891,9 @@ public class RegressionTestSuite {
 
     /**
      * Run a test and record results
+     */
+    /**
+     * Run a single test with timing and error handling
      */
     private void runTest(String testName, Runnable test) {
         try {

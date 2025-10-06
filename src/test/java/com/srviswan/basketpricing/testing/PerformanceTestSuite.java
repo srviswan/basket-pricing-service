@@ -1,9 +1,7 @@
 package com.srviswan.basketpricing.testing;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,7 +11,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 /**
  * Performance benchmarking suite for the basket pricing service.
@@ -26,7 +23,6 @@ public class PerformanceTestSuite {
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     
     private final PerformanceResults results = new PerformanceResults();
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -655,8 +651,6 @@ public class PerformanceTestSuite {
      */
     private void testGarbageCollection() {
         log.info("Testing garbage collection");
-        
-        Runtime runtime = Runtime.getRuntime();
         
         // Measure GC impact
         long startTime = System.nanoTime();

@@ -1,6 +1,5 @@
 package com.srviswan.basketpricing.examples;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.srviswan.basketpricing.grpc.*;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -33,7 +32,6 @@ public class ClientComparisonExample {
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static void main(String[] args) {
         try {

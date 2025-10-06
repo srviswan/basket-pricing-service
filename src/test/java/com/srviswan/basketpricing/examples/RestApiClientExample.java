@@ -76,6 +76,7 @@ public class RestApiClientExample {
                 log.info("Prices Response: {}", responseBody);
                 
                 // Parse and display prices
+                @SuppressWarnings("unchecked")
                 Map<String, Object> prices = OBJECT_MAPPER.readValue(responseBody, Map.class);
                 prices.forEach((symbol, priceData) -> {
                     log.info("Symbol: {} - Price: {}", symbol, priceData);
@@ -114,11 +115,13 @@ public class RestApiClientExample {
                 log.info("Subscription Response: {}", responseBody);
                 
                 // Parse subscription response
+                @SuppressWarnings("unchecked")
                 Map<String, Object> subscriptionResponse = OBJECT_MAPPER.readValue(responseBody, Map.class);
                 log.info("Subscribed to {} symbols", subscriptionResponse.get("subscribed"));
                 log.info("Total subscriptions: {}", subscriptionResponse.get("totalSubscriptions"));
                 
                 // Display backpressure status
+                @SuppressWarnings("unchecked")
                 Map<String, Object> backpressureStatus = (Map<String, Object>) subscriptionResponse.get("backpressureStatus");
                 if (backpressureStatus != null) {
                     log.info("Backpressure - Queue utilization: {}%, Processed updates: {}, Dropped updates: {}",
@@ -159,7 +162,9 @@ public class RestApiClientExample {
                 log.info("Subscriptions Response: {}", responseBody);
                 
                 // Parse subscriptions response
+                @SuppressWarnings("unchecked")
                 Map<String, Object> subscriptionsResponse = OBJECT_MAPPER.readValue(responseBody, Map.class);
+                @SuppressWarnings("unchecked")
                 List<String> subscribedSymbols = (List<String>) subscriptionsResponse.get("subscribedSymbols");
                 Integer count = (Integer) subscriptionsResponse.get("count");
                 
@@ -199,7 +204,9 @@ public class RestApiClientExample {
                 log.info("Unsubscription Response: {}", responseBody);
                 
                 // Parse unsubscription response
+                @SuppressWarnings("unchecked")
                 Map<String, Object> unsubscriptionResponse = OBJECT_MAPPER.readValue(responseBody, Map.class);
+                @SuppressWarnings("unchecked")
                 List<String> unsubscribedSymbols = (List<String>) unsubscriptionResponse.get("unsubscribed");
                 Integer remainingSubscriptions = (Integer) unsubscriptionResponse.get("remainingSubscriptions");
                 
