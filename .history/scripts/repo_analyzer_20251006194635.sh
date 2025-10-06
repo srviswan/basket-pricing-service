@@ -496,7 +496,7 @@ generate_cicd_templates
 generate_branch_protection
 
 # Generate branch naming policy
-output_file="branch_naming_policy.md"
+local output_file="branch_naming_policy.md"
 print_color $BLUE "Generating branch naming policy..."
 
 cat > "$output_file" << 'EOF'
