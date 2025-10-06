@@ -39,7 +39,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-@Component("refinitivEmaProvider")
+@Component
 @RequiredArgsConstructor
 public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClient {
 

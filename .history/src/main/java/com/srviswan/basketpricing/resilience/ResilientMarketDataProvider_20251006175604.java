@@ -8,8 +8,8 @@ import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Component
 @Primary
+@RequiredArgsConstructor
 public class ResilientMarketDataProvider implements MarketDataProvider {
 
     private final MarketDataProvider delegate;
@@ -38,17 +39,6 @@ public class ResilientMarketDataProvider implements MarketDataProvider {
     private CircuitBreaker circuitBreaker;
     private RateLimiter rateLimiter;
     private Retry retry;
-
-    public ResilientMarketDataProvider(
-            @Qualifier("refinitivEmaProvider") MarketDataProvider delegate,
-            CircuitBreakerRegistry circuitBreakerRegistry,
-            RateLimiterRegistry rateLimiterRegistry,
-            RetryRegistry retryRegistry) {
-        this.delegate = delegate;
-        this.circuitBreakerRegistry = circuitBreakerRegistry;
-        this.rateLimiterRegistry = rateLimiterRegistry;
-        this.retryRegistry = retryRegistry;
-    }
 
     @Override
     public Map<String, PriceSnapshot> getLatestPrices(Collection<String> symbols) {

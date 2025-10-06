@@ -39,17 +39,6 @@ public class ResilientMarketDataProvider implements MarketDataProvider {
     private RateLimiter rateLimiter;
     private Retry retry;
 
-    public ResilientMarketDataProvider(
-            @Qualifier("refinitivEmaProvider") MarketDataProvider delegate,
-            CircuitBreakerRegistry circuitBreakerRegistry,
-            RateLimiterRegistry rateLimiterRegistry,
-            RetryRegistry retryRegistry) {
-        this.delegate = delegate;
-        this.circuitBreakerRegistry = circuitBreakerRegistry;
-        this.rateLimiterRegistry = rateLimiterRegistry;
-        this.retryRegistry = retryRegistry;
-    }
-
     @Override
     public Map<String, PriceSnapshot> getLatestPrices(Collection<String> symbols) {
         if (circuitBreaker == null) {
