@@ -1,8 +1,5 @@
 package com.srviswan.basketpricing.grpc;
 
-import com.srviswan.basketpricing.marketdata.MarketDataProvider;
-import com.srviswan.basketpricing.marketdata.PriceSnapshot;
-import com.srviswan.basketpricing.monitoring.PricingMetrics;
 import com.srviswan.basketpricing.events.PriceUpdateEvent;
 import org.springframework.context.event.EventListener;
 import io.grpc.stub.StreamObserver;

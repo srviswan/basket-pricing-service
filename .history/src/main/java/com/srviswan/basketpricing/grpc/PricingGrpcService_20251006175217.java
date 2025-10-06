@@ -1,8 +1,5 @@
 package com.srviswan.basketpricing.grpc;
 
-import com.srviswan.basketpricing.marketdata.MarketDataProvider;
-import com.srviswan.basketpricing.marketdata.PriceSnapshot;
-import com.srviswan.basketpricing.monitoring.PricingMetrics;
 import com.srviswan.basketpricing.events.PriceUpdateEvent;
 import org.springframework.context.event.EventListener;
 import io.grpc.stub.StreamObserver;
@@ -206,39 +203,7 @@ public class PricingGrpcService extends PricingServiceGrpc.PricingServiceImplBas
         }, 0, 100, TimeUnit.MILLISECONDS); // Stream every 100ms
     }
 
-    // Event listener for price updates
-    @EventListener
-    public void handlePriceUpdate(PriceUpdateEvent event) {
-        String symbol = event.getSymbol();
-        PriceSnapshot snapshot = event.getSnapshot();
-        
-        // Broadcast to all active streams for this symbol
-        Set<StreamObserver<PriceUpdate>> streams = activeStreams.get(symbol);
-        if (streams != null && !streams.isEmpty()) {
-            PriceUpdate update = PriceUpdate.newBuilder()
-                    .setSymbol(symbol)
-                    .setSnapshot(com.srviswan.basketpricing.grpc.PriceSnapshot.newBuilder()
-                            .setSymbol(snapshot.getSymbol())
-                            .setBid(snapshot.getBid() != null ? snapshot.getBid() : 0.0)
-                            .setAsk(snapshot.getAsk() != null ? snapshot.getAsk() : 0.0)
-                            .setLast(snapshot.getLast() != null ? snapshot.getLast() : 0.0)
-                            .setTimestamp(snapshot.getTimestamp().toEpochMilli())
-                            .build())
-                    .setUpdateTimestamp(System.currentTimeMillis())
-                    .build();
-            
-            streams.forEach(stream -> {
-                try {
-                    stream.onNext(update);
-                } catch (Exception e) {
-                    log.warn("Failed to send update to stream for symbol {}", symbol, e);
-                    streams.remove(stream);
-                }
-            });
-        }
-    }
-    
-    // Method to broadcast price updates to all active streams (kept for backward compatibility)
+    // Method to broadcast price updates to all active streams
     public void broadcastPriceUpdate(String symbol, PriceSnapshot snapshot) {
         Set<StreamObserver<PriceUpdate>> streams = activeStreams.get(symbol);
         if (streams != null && !streams.isEmpty()) {

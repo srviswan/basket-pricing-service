@@ -16,10 +16,6 @@ import com.refinitiv.ema.access.RefreshMsg;
 import com.refinitiv.ema.access.StatusMsg;
 import com.refinitiv.ema.access.UpdateMsg;
 import com.refinitiv.ema.access.Payload;
-import com.srviswan.basketpricing.marketdata.MarketDataProvider;
-import com.srviswan.basketpricing.marketdata.PriceSnapshot;
-import com.srviswan.basketpricing.monitoring.PricingMetrics;
-import com.srviswan.basketpricing.resilience.BackpressureManager;
 import com.srviswan.basketpricing.events.PriceUpdateEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import jakarta.annotation.PostConstruct;
@@ -45,7 +41,9 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
 
     private final PricingMetrics pricingMetrics;
     private final BackpressureManager backpressureManager;
-    private final ApplicationEventPublisher eventPublisher;
+    
+    @Autowired(required = false)
+    private com.srviswan.basketpricing.grpc.PricingGrpcService grpcService;
 
     private final Map<String, PriceSnapshot> snapshotByRic = new ConcurrentHashMap<>();
     private final Map<String, Long> handleByRic = new ConcurrentHashMap<>();
@@ -206,16 +204,17 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
             task.getUpdateAction().run();
         }
         
-        // Publish event for other components to listen to (gRPC, etc.)
-        PriceSnapshot snap = PriceSnapshot.builder()
-                .symbol(symbol)
-                .bid(finalBid)
-                .ask(finalAsk)
-                .last(finalLast)
-                .timestamp(Instant.now())
-                .build();
-        
-        eventPublisher.publishEvent(new PriceUpdateEvent(this, symbol, snap));
+        // Broadcast to gRPC streams if available
+        if (grpcService != null) {
+            PriceSnapshot snap = PriceSnapshot.builder()
+                    .symbol(symbol)
+                    .bid(finalBid)
+                    .ask(finalAsk)
+                    .last(finalLast)
+                    .timestamp(Instant.now())
+                    .build();
+            grpcService.broadcastPriceUpdate(symbol, snap);
+        }
     }
 
     private Double parseDouble(FieldEntry fe) {
