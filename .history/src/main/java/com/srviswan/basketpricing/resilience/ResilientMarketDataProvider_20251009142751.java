@@ -50,13 +50,6 @@ public class ResilientMarketDataProvider implements MarketDataProvider {
         this.rateLimiterRegistry = rateLimiterRegistry;
         this.retryRegistry = retryRegistry;
     }
-    
-    @PostConstruct
-    public void init() {
-        log.info("ResilientMarketDataProvider initialized with delegate: {}", 
-                 delegate.getClass().getName());
-        log.info("ResilientMarketDataProvider is marked as @Primary");
-    }
 
     @Override
     public Map<String, PriceSnapshot> getLatestPrices(Collection<String> symbols) {

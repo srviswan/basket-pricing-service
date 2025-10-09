@@ -8,7 +8,6 @@ import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
@@ -49,13 +48,6 @@ public class ResilientMarketDataProvider implements MarketDataProvider {
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.rateLimiterRegistry = rateLimiterRegistry;
         this.retryRegistry = retryRegistry;
-    }
-    
-    @PostConstruct
-    public void init() {
-        log.info("ResilientMarketDataProvider initialized with delegate: {}", 
-                 delegate.getClass().getName());
-        log.info("ResilientMarketDataProvider is marked as @Primary");
     }
 
     @Override
