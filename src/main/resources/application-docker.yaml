@@ -1,0 +1,122 @@
+# Docker-specific configuration
+spring:
+  application:
+    name: basket-pricing-service
+  
+  # Redis configuration (uses docker service name)
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+  
+  # Kafka configuration (uses docker service name)
+  kafka:
+    bootstrap-servers: kafka:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: basket-pricing-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+# Server configuration
+server:
+  port: 8080
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+
+# Management/Actuator configuration
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 10ms,50ms,100ms,200ms,500ms,1s
+
+# gRPC configuration
+grpc:
+  server:
+    port: 9090
+
+# Refinitiv EMA configuration
+refinitiv:
+  ema:
+    host: ${REFINITIV_HOST:ads1}
+    port: ${REFINITIV_PORT:14002}
+    serviceName: ${REFINITIV_SERVICE_NAME:ELEKTRON_DD}
+    username: ${REFINITIV_USERNAME:user1}
+    appId: "256"
+    position: "127.0.0.1/net"
+
+# Application-specific configuration
+basket-pricing:
+  cache:
+    enabled: true
+    ttl: 300
+  market-data:
+    update-interval: 1000
+  resilience:
+    circuit-breaker:
+      failure-rate-threshold: 50
+      wait-duration-in-open-state: 60000
+      sliding-window-size: 10
+    retry:
+      max-attempts: 3
+      wait-duration: 1000
+    rate-limiter:
+      limit-for-period: 100
+      limit-refresh-period: 1000
+      timeout-duration: 500
+  backpressure:
+    queue-capacity: 10000
+    max-rate-per-second: 1000
+    batch-size: 100
+    batch-timeout-ms: 100
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.srviswan: DEBUG
+    io.github.resilience4j: INFO
+    io.grpc: INFO
+    org.springframework: INFO
+    org.springframework.web: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/application.log
+    max-size: 10MB
+    max-history: 10
+

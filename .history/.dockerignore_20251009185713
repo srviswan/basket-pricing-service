@@ -1,0 +1,56 @@
+# Ignore build artifacts
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Ignore IDE files
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore Docker files
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Ignore test files
+src/test/
+
+# Ignore scripts
+scripts/
+
+# Ignore documentation
+*.md
+docs/
+
+# Ignore monitoring configs (will be mounted)
+monitoring/
+
+# Ignore temp files
+*.tmp
+*.swp
+*~
+
+# Ignore local config
+.env
+.env.local
+
+# Ignore history files
+.history/
