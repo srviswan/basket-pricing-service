@@ -30,23 +30,6 @@ get_metric() {
     fi
 }
 
-# Check if service is running before starting dashboard
-check_service() {
-    if ! curl -s -f "$BASE_URL/actuator/health" > /dev/null 2>&1; then
-        print_color $RED "❌ Error: Pricing service is not running!"
-        print_color $YELLOW "Please start the service with:"
-        print_color $BLUE "  mvn spring-boot:run"
-        print_color $YELLOW "Or:"
-        print_color $BLUE "  ./scripts/build.sh && mvn spring-boot:run"
-        exit 1
-    fi
-}
-
-# Initial service check
-check_service
-print_color $GREEN "✅ Service is running. Starting dashboard..."
-sleep 1
-
 while true; do
     clear
     print_color $PURPLE "╔════════════════════════════════════════════════════════════╗"
