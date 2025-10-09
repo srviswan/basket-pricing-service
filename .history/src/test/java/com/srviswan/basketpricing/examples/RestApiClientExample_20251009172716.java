@@ -38,15 +38,8 @@ public class RestApiClientExample {
             subscribeToSymbols();
             
             // Wait for initial price updates from Refinitiv
-            log.info("Step 2: Waiting for initial price updates...");
-            if (waitForPrices("IBM.N,MSFT.O", 30)) {
-                log.info("✅ Prices are ready!");
-            } else {
-                log.warn("⚠️  Prices not available yet. This could be due to:");
-                log.warn("  - Refinitiv connection not established");
-                log.warn("  - Market is closed");
-                log.warn("  - Symbols not actively traded");
-            }
+            log.info("Step 2: Waiting for initial price updates (10 seconds)...");
+            Thread.sleep(10000);
             
             // Now get prices (should have data)
             log.info("Step 3: Get current prices");
@@ -64,52 +57,6 @@ public class RestApiClientExample {
             
         } catch (Exception e) {
             log.error("Error in REST API Client Example", e);
-        }
-    }
-
-    /**
-     * Helper method: Wait for prices to be available
-     * This is important after subscribing, as it takes time for Refinitiv to send initial updates
-     */
-    public static boolean waitForPrices(String symbols, int maxWaitSeconds) {
-        try {
-            log.info("Waiting for prices to be available for: {}", symbols);
-            
-            String url = BASE_URL + "?symbols=" + symbols;
-            int attempts = 0;
-            int maxAttempts = maxWaitSeconds;
-            
-            while (attempts < maxAttempts) {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .GET()
-                        .header("Accept", "application/json")
-                        .build();
-                
-                HttpResponse<String> response = HTTP_CLIENT.send(request, 
-                        HttpResponse.BodyHandlers.ofString());
-                
-                if (response.statusCode() == 200) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> prices = OBJECT_MAPPER.readValue(response.body(), Map.class);
-                    
-                    if (!prices.isEmpty()) {
-                        log.info("✅ Prices are now available! (waited {} seconds)", attempts);
-                        return true;
-                    }
-                }
-                
-                attempts++;
-                log.debug("Waiting for prices... ({}/{})", attempts, maxAttempts);
-                Thread.sleep(1000);
-            }
-            
-            log.warn("⚠️  Prices not available after {} seconds", maxWaitSeconds);
-            return false;
-            
-        } catch (Exception e) {
-            log.error("Error waiting for prices", e);
-            return false;
         }
     }
 

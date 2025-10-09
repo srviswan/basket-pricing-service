@@ -38,15 +38,8 @@ public class RestApiClientExample {
             subscribeToSymbols();
             
             // Wait for initial price updates from Refinitiv
-            log.info("Step 2: Waiting for initial price updates...");
-            if (waitForPrices("IBM.N,MSFT.O", 30)) {
-                log.info("✅ Prices are ready!");
-            } else {
-                log.warn("⚠️  Prices not available yet. This could be due to:");
-                log.warn("  - Refinitiv connection not established");
-                log.warn("  - Market is closed");
-                log.warn("  - Symbols not actively traded");
-            }
+            log.info("Step 2: Waiting for initial price updates (10 seconds)...");
+            Thread.sleep(10000);
             
             // Now get prices (should have data)
             log.info("Step 3: Get current prices");
