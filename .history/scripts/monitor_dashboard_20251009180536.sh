@@ -124,13 +124,11 @@ while true; do
     # CPU Usage
     cpu=$(get_metric "system.cpu.usage")
     if [ "$cpu" != "N/A" ]; then
-        # Convert to integer percentage using awk
-        cpu_pct=$(awk "BEGIN {printf \"%.0f\", $cpu * 100}")
+        cpu_pct=$(echo "scale=1; $cpu * 100" | bc)
         
-        # Compare using integer arithmetic
-        if [ "$cpu_pct" -lt 50 ]; then
+        if (( $(echo "$cpu < 0.5" | bc -l) )); then
             print_color $GREEN "🖥️  CPU Usage: ${cpu_pct}%"
-        elif [ "$cpu_pct" -lt 80 ]; then
+        elif (( $(echo "$cpu < 0.8" | bc -l) )); then
             print_color $YELLOW "🖥️  CPU Usage: ${cpu_pct}%"
         else
             print_color $RED "🖥️  CPU Usage: ${cpu_pct}% HIGH!"

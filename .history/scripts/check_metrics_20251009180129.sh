@@ -47,10 +47,9 @@ mem_used=$(curl -s $BASE_URL/actuator/metrics/jvm.memory.used | jq -r '.measurem
 mem_max=$(curl -s $BASE_URL/actuator/metrics/jvm.memory.max | jq -r '.measurements[0].value')
 
 if [ "$mem_used" != "null" ] && [ "$mem_max" != "null" ]; then
-    # Convert to MB using awk
-    mem_used_mb=$(awk "BEGIN {printf \"%.0f\", $mem_used / 1048576}")
-    mem_max_mb=$(awk "BEGIN {printf \"%.0f\", $mem_max / 1048576}")
-    mem_pct=$(awk "BEGIN {printf \"%.1f\", ($mem_used / $mem_max) * 100}")
+    mem_used_mb=$(echo "scale=0; $mem_used / 1048576" | bc)
+    mem_max_mb=$(echo "scale=0; $mem_max / 1048576" | bc)
+    mem_pct=$(echo "scale=1; ($mem_used / $mem_max) * 100" | bc)
     echo "${mem_used_mb}MB / ${mem_max_mb}MB (${mem_pct}%)"
 else
     echo "N/A"
@@ -59,8 +58,7 @@ fi
 echo -e "\n${BLUE}🖥️  CPU Usage:${NC}"
 cpu=$(curl -s $BASE_URL/actuator/metrics/system.cpu.usage | jq -r '.measurements[0].value')
 if [ "$cpu" != "null" ]; then
-    # Convert to percentage using awk
-    cpu_pct=$(awk "BEGIN {printf \"%.1f\", $cpu * 100}")
+    cpu_pct=$(echo "scale=1; $cpu * 100" | bc)
     echo "${cpu_pct}%"
 else
     echo "N/A"

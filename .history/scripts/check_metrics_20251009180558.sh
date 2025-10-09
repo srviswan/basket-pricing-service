@@ -59,8 +59,7 @@ fi
 echo -e "\n${BLUE}🖥️  CPU Usage:${NC}"
 cpu=$(curl -s $BASE_URL/actuator/metrics/system.cpu.usage | jq -r '.measurements[0].value')
 if [ "$cpu" != "null" ]; then
-    # Convert to percentage using awk
-    cpu_pct=$(awk "BEGIN {printf \"%.1f\", $cpu * 100}")
+    cpu_pct=$(echo "scale=1; $cpu * 100" | bc)
     echo "${cpu_pct}%"
 else
     echo "N/A"

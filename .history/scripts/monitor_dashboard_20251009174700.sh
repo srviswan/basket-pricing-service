@@ -70,13 +70,11 @@ while true; do
     
     # Calculate percentage
     if [ "$bp_util" != "N/A" ]; then
-        # Convert to integer percentage (multiply by 100)
-        bp_util_pct=$(printf "%.0f" $(awk "BEGIN {print $bp_util * 100}"))
+        bp_util_pct=$(echo "$bp_util * 100" | bc 2>/dev/null || echo "0")
         
-        # Compare using integer arithmetic
-        if [ "$bp_util_pct" -lt 50 ]; then
+        if (( $(echo "$bp_util < 0.5" | bc -l) )); then
             print_color $GREEN "⚡ Queue Utilization: ${bp_util_pct}% (HEALTHY)"
-        elif [ "$bp_util_pct" -lt 80 ]; then
+        elif (( $(echo "$bp_util < 0.8" | bc -l) )); then
             print_color $YELLOW "⚡ Queue Utilization: ${bp_util_pct}% (MODERATE)"
         else
             print_color $RED "⚡ Queue Utilization: ${bp_util_pct}% (HIGH!)"
@@ -104,15 +102,13 @@ while true; do
     mem_max=$(get_metric "jvm.memory.max")
     
     if [ "$mem_used" != "N/A" ] && [ "$mem_max" != "N/A" ]; then
-        # Convert to MB using awk
-        mem_used_mb=$(awk "BEGIN {printf \"%.0f\", $mem_used / 1048576}")
-        mem_max_mb=$(awk "BEGIN {printf \"%.0f\", $mem_max / 1048576}")
-        mem_pct=$(awk "BEGIN {printf \"%.0f\", ($mem_used / $mem_max) * 100}")
+        mem_used_mb=$(echo "scale=0; $mem_used / 1048576" | bc)
+        mem_max_mb=$(echo "scale=0; $mem_max / 1048576" | bc)
+        mem_pct=$(echo "scale=1; ($mem_used / $mem_max) * 100" | bc)
         
-        # Compare using integer arithmetic
-        if [ "$mem_pct" -lt 70 ]; then
+        if (( $(echo "$mem_pct < 70" | bc -l) )); then
             print_color $GREEN "💾 Memory: ${mem_used_mb}MB / ${mem_max_mb}MB (${mem_pct}%)"
-        elif [ "$mem_pct" -lt 85 ]; then
+        elif (( $(echo "$mem_pct < 85" | bc -l) )); then
             print_color $YELLOW "💾 Memory: ${mem_used_mb}MB / ${mem_max_mb}MB (${mem_pct}%)"
         else
             print_color $RED "💾 Memory: ${mem_used_mb}MB / ${mem_max_mb}MB (${mem_pct}%) HIGH!"
@@ -124,13 +120,11 @@ while true; do
     # CPU Usage
     cpu=$(get_metric "system.cpu.usage")
     if [ "$cpu" != "N/A" ]; then
-        # Convert to integer percentage using awk
-        cpu_pct=$(awk "BEGIN {printf \"%.0f\", $cpu * 100}")
+        cpu_pct=$(echo "scale=1; $cpu * 100" | bc)
         
-        # Compare using integer arithmetic
-        if [ "$cpu_pct" -lt 50 ]; then
+        if (( $(echo "$cpu < 0.5" | bc -l) )); then
             print_color $GREEN "🖥️  CPU Usage: ${cpu_pct}%"
-        elif [ "$cpu_pct" -lt 80 ]; then
+        elif (( $(echo "$cpu < 0.8" | bc -l) )); then
             print_color $YELLOW "🖥️  CPU Usage: ${cpu_pct}%"
         else
             print_color $RED "🖥️  CPU Usage: ${cpu_pct}% HIGH!"
