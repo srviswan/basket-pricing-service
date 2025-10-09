@@ -66,23 +66,16 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
 
     @PostConstruct
     public void start() {
-        log.info("🚀 Starting Refinitiv EMA provider...");
-        log.info("Configuration: host={}, port={}, user={}, service={}", host, port, user, service);
-        
         try {
-            log.info("Creating OmmConsumer with USER_DISPATCH operation model...");
             consumer = EmaFactory.createOmmConsumer(EmaFactory.createOmmConsumerConfig()
                     .username(user)
                     .host(host + ":" + port)
                     .operationModel(OmmConsumerConfig.OperationModel.USER_DISPATCH));
 
-            log.info("✅ OmmConsumer created successfully");
             pricingMetrics.setConnectionStatus(true);
             pricingMetrics.initializeGauges();
 
-            log.info("Starting EMA dispatcher thread...");
             Thread dispatcher = new Thread(() -> {
-                log.info("EMA dispatcher thread started");
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
                         consumer.dispatch(500);
@@ -92,16 +85,13 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
                         pricingMetrics.setConnectionStatus(false);
                     }
                 }
-                log.info("EMA dispatcher thread stopped");
             }, "ema-dispatcher");
             dispatcher.setDaemon(true);
             dispatcher.start();
             
-            log.info("✅ Refinitiv EMA provider started successfully");
-            log.info("Ready to accept subscriptions. Current subscriptions: {}", handleByRic.size());
+            log.info("Refinitiv EMA provider started successfully");
         } catch (Exception e) {
-            log.error("❌ Failed to start Refinitiv EMA provider", e);
-            log.error("Connection details: host={}, port={}, user={}", host, port, user);
+            log.error("Failed to start Refinitiv EMA provider", e);
             pricingMetrics.recordConnectionError();
             pricingMetrics.setConnectionStatus(false);
             throw e;
@@ -139,29 +129,15 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
 
     @Override
     public void subscribe(Collection<String> symbols) {
-        log.info("RefinitivEmaProvider.subscribe() called for symbols: {}", symbols);
-        
-        if (consumer == null) {
-            log.error("Cannot subscribe: EMA consumer is not initialized!");
-            return;
-        }
-        
         for (String ric : symbols) {
             handleByRic.computeIfAbsent(ric, r -> {
-                try {
-                    ReqMsg req = EmaFactory.createReqMsg().serviceName(service).name(r);
-                    long handle = consumer.registerClient(req, this);
-                    log.info("✅ Successfully subscribed to {} with handle {}", r, handle);
-                    pricingMetrics.incrementActiveSubscriptions();
-                    return handle;
-                } catch (Exception e) {
-                    log.error("❌ Failed to subscribe to {}: {}", r, e.getMessage(), e);
-                    return null;
-                }
+                ReqMsg req = EmaFactory.createReqMsg().serviceName(service).name(r);
+                long handle = consumer.registerClient(req, this);
+                log.info("Subscribed {} handle {}", r, handle);
+                pricingMetrics.incrementActiveSubscriptions();
+                return handle;
             });
         }
-        
-        log.info("Subscription complete. Total subscriptions: {}", handleByRic.size());
     }
 
     @Override
@@ -183,7 +159,6 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
 
     @Override
     public void onRefreshMsg(RefreshMsg refreshMsg, OmmConsumerEvent event) {
-        log.info("📥 Received RefreshMsg for symbol: {}", refreshMsg.name());
         long startTime = System.currentTimeMillis();
         handleMessage(refreshMsg.name(), refreshMsg.payload());
         pricingMetrics.recordPriceUpdateLatency(System.currentTimeMillis() - startTime);
@@ -191,7 +166,6 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
 
     @Override
     public void onUpdateMsg(UpdateMsg updateMsg, OmmConsumerEvent event) {
-        log.debug("📥 Received UpdateMsg for symbol: {}", updateMsg.name());
         long startTime = System.currentTimeMillis();
         handleMessage(updateMsg.name(), updateMsg.payload());
         pricingMetrics.recordPriceUpdateLatency(System.currentTimeMillis() - startTime);
@@ -199,7 +173,7 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
 
     @Override
     public void onStatusMsg(StatusMsg statusMsg, OmmConsumerEvent event) {
-        log.info("📊 STATUS message received: {}", statusMsg);
+        log.debug("STATUS {}", statusMsg);
     }
 
     @Override public void onGenericMsg(GenericMsg genericMsg, OmmConsumerEvent event) {}
@@ -207,44 +181,18 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
     @Override public void onAllMsg(Msg msg, OmmConsumerEvent event) {}
 
     private void handleMessage(String name, Payload payload) {
-        log.debug("📨 handleMessage() called for symbol: {}", name);
-        
-        if (payload == null) {
-            log.warn("⚠️  Payload is null for symbol: {}", name);
-            return;
-        }
-        
-        if (payload.dataType() != DataType.DataTypes.FIELD_LIST) {
-            log.warn("⚠️  Payload is not FIELD_LIST for symbol: {}. Type: {}", name, payload.dataType());
-            return;
-        }
-        
+        if (payload == null || payload.dataType() != DataType.DataTypes.FIELD_LIST) return;
         FieldList fields = payload.fieldList();
         Double bid = null, ask = null, last = null;
-        int fieldCount = 0;
-        
         for (FieldEntry fe : fields) {
-            fieldCount++;
             String fname = fe.name();
             switch (fname) {
-                case "BID" -> {
-                    bid = parseDouble(fe);
-                    log.debug("  BID field: {}", bid);
-                }
-                case "ASK" -> {
-                    ask = parseDouble(fe);
-                    log.debug("  ASK field: {}", ask);
-                }
-                case "TRDPRC_1" -> {
-                    last = parseDouble(fe);
-                    log.debug("  LAST field: {}", last);
-                }
+                case "BID" -> bid = parseDouble(fe);
+                case "ASK" -> ask = parseDouble(fe);
+                case "TRDPRC_1" -> last = parseDouble(fe);
                 default -> {}
             }
         }
-        
-        log.debug("Parsed {} fields for {}: BID={}, ASK={}, LAST={}", fieldCount, name, bid, ask, last);
-        
         // Use backpressure to handle high-frequency updates
         final String symbol = name;
         final Double finalBid = bid;
@@ -260,18 +208,13 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
                     .timestamp(Instant.now())
                     .build();
             snapshotByRic.put(symbol, snap);
-            log.info("💾 Stored price snapshot for {}: BID={}, ASK={}, LAST={}", symbol, finalBid, finalAsk, finalLast);
-            log.debug("snapshotByRic map now contains {} entries", snapshotByRic.size());
             pricingMetrics.recordPriceUpdate();
         });
 
-        boolean offered = backpressureManager.offerUpdate(task);
-        if (!offered) {
+        if (!backpressureManager.offerUpdate(task)) {
             // If queue is full, update directly but log the backpressure
-            log.warn("⚠️  Backpressure: queue full, updating directly for {}", name);
+            log.debug("Backpressure: queue full, updating directly for {}", name);
             task.getUpdateAction().run();
-        } else {
-            log.debug("✅ Price update task queued for {}", name);
         }
         
         // Publish event for other components to listen to (gRPC, etc.)
@@ -284,7 +227,6 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
                 .build();
         
         eventPublisher.publishEvent(new PriceUpdateEvent(this, symbol, snap));
-        log.debug("📢 Published PriceUpdateEvent for {}", symbol);
     }
 
     private Double parseDouble(FieldEntry fe) {

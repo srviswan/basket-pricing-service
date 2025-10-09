@@ -66,23 +66,16 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
 
     @PostConstruct
     public void start() {
-        log.info("🚀 Starting Refinitiv EMA provider...");
-        log.info("Configuration: host={}, port={}, user={}, service={}", host, port, user, service);
-        
         try {
-            log.info("Creating OmmConsumer with USER_DISPATCH operation model...");
             consumer = EmaFactory.createOmmConsumer(EmaFactory.createOmmConsumerConfig()
                     .username(user)
                     .host(host + ":" + port)
                     .operationModel(OmmConsumerConfig.OperationModel.USER_DISPATCH));
 
-            log.info("✅ OmmConsumer created successfully");
             pricingMetrics.setConnectionStatus(true);
             pricingMetrics.initializeGauges();
 
-            log.info("Starting EMA dispatcher thread...");
             Thread dispatcher = new Thread(() -> {
-                log.info("EMA dispatcher thread started");
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
                         consumer.dispatch(500);
@@ -92,16 +85,13 @@ public class RefinitivEmaProvider implements MarketDataProvider, OmmConsumerClie
                         pricingMetrics.setConnectionStatus(false);
                     }
                 }
-                log.info("EMA dispatcher thread stopped");
             }, "ema-dispatcher");
             dispatcher.setDaemon(true);
             dispatcher.start();
             
-            log.info("✅ Refinitiv EMA provider started successfully");
-            log.info("Ready to accept subscriptions. Current subscriptions: {}", handleByRic.size());
+            log.info("Refinitiv EMA provider started successfully");
         } catch (Exception e) {
-            log.error("❌ Failed to start Refinitiv EMA provider", e);
-            log.error("Connection details: host={}, port={}, user={}", host, port, user);
+            log.error("Failed to start Refinitiv EMA provider", e);
             pricingMetrics.recordConnectionError();
             pricingMetrics.setConnectionStatus(false);
             throw e;

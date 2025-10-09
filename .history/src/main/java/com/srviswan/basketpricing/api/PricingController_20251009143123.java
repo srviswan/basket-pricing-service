@@ -118,35 +118,6 @@ public class PricingController {
         }
     }
 
-    @GetMapping("/diagnostics")
-    public ResponseEntity<Map<String, Object>> getDiagnostics() {
-        log.info("Diagnostics endpoint called");
-        
-        Map<String, Object> diagnostics = new HashMap<>();
-        diagnostics.put("marketDataProviderClass", marketDataProvider.getClass().getName());
-        diagnostics.put("isResilientProvider", 
-            marketDataProvider instanceof com.srviswan.basketpricing.resilience.ResilientMarketDataProvider);
-        diagnostics.put("subscribedSymbols", marketDataProvider.getSubscribedSymbols());
-        diagnostics.put("subscriptionCount", marketDataProvider.getSubscribedSymbols().size());
-        
-        // Get sample prices to see if any are available
-        Set<String> subscribedSymbols = marketDataProvider.getSubscribedSymbols();
-        if (!subscribedSymbols.isEmpty()) {
-            Map<String, PriceSnapshot> prices = marketDataProvider.getLatestPrices(subscribedSymbols);
-            diagnostics.put("availablePrices", prices.size());
-            diagnostics.put("priceKeys", prices.keySet());
-        } else {
-            diagnostics.put("availablePrices", 0);
-            diagnostics.put("priceKeys", Collections.emptySet());
-        }
-        
-        diagnostics.put("backpressureUtilization", backpressureManager.getQueueUtilization());
-        diagnostics.put("backpressureProcessed", backpressureManager.getProcessedUpdates());
-        diagnostics.put("backpressureDropped", backpressureManager.getDroppedUpdates());
-        
-        return ResponseEntity.ok(diagnostics);
-    }
-
     private List<String> parseCsv(String csv) {
         List<String> list = new ArrayList<>();
         for (String s : csv.split(",")) {
