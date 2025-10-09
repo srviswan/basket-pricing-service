@@ -72,7 +72,6 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: basket-pricing-grafana
-    pull_policy: missing  # Only pull if not available locally
     ports:
       - "3000:3000"
     environment:
