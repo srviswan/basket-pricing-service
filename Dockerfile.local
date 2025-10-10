@@ -1,0 +1,47 @@
+# Dockerfile for using locally built JAR artifact
+# This is FASTER and more efficient for development/CI workflows
+
+FROM eclipse-temurin:21-jre-jammy
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy the pre-built JAR from local target directory
+# Build locally first: mvn clean package -DskipTests
+COPY target/*.jar app.jar
+
+# Copy application configuration
+COPY src/main/resources/application*.yaml ./config/
+
+# Change ownership to non-root user
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose ports
+# 8080 - REST API
+# 9090 - gRPC
+# 8081 - Actuator/Management
+EXPOSE 8080 9090 8081
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+# JVM options for container environment
+ENV JAVA_OPTS="-XX:+UseContainerSupport \
+               -XX:MaxRAMPercentage=75.0 \
+               -XX:InitialRAMPercentage=50.0 \
+               -XX:+UseG1GC \
+               -XX:MaxGCPauseMillis=200 \
+               -XX:+HeapDumpOnOutOfMemoryError \
+               -XX:HeapDumpPath=/app/logs/heap-dump.hprof \
+               -Djava.security.egd=file:/dev/./urandom"
+
+# Run the application
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+

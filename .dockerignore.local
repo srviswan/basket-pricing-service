@@ -1,0 +1,68 @@
+# .dockerignore for Dockerfile.local (using pre-built JAR)
+# This version ALLOWS target/ directory to be copied
+
+# Ignore build artifacts (except target/)
+# target/  # COMMENTED OUT - we need target/*.jar
+*.class
+*.war
+*.ear
+
+# But still ignore specific files in target/
+target/classes/
+target/test-classes/
+target/generated-sources/
+target/generated-test-sources/
+target/maven-status/
+target/surefire-reports/
+
+# Ignore IDE files
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore Docker files
+Dockerfile
+Dockerfile.local
+docker-compose*.yml
+.dockerignore*
+
+# Ignore test files
+src/test/
+
+# Ignore scripts
+scripts/
+
+# Ignore documentation
+*.md
+docs/
+
+# Ignore monitoring configs (will be mounted)
+monitoring/
+
+# Ignore temp files
+*.tmp
+*.swp
+*~
+
+# Ignore local config
+.env
+.env.local
+
+# Ignore history files
+.history/
+
