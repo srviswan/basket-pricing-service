@@ -138,15 +138,8 @@ public class DataQualityController {
      * Get issue breakdown by dimension
      */
     @GetMapping("/breakdown")
-    public ResponseEntity<Map<String, Long>> getIssueBreakdown() {
-        // Convert enum keys to strings for proper JSON serialization
-        Map<String, Long> breakdown = issueTracker.getIssuesByDimension().entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> e.getKey().name(),  // Convert ValidationDimension to String
-                Map.Entry::getValue
-            ));
-        
-        return ResponseEntity.ok(breakdown);
+    public ResponseEntity<Map<ValidationDimension, Long>> getIssueBreakdown() {
+        return ResponseEntity.ok(issueTracker.getIssuesByDimension());
     }
     
     /**
@@ -204,19 +197,11 @@ public class DataQualityController {
         DataQualityIssueTracker.QualitySummary summary = issueTracker.getSummary();
         report.put("summary", summary);
         
-        // Top offenders (convert to DTO)
-        List<SymbolIssueCount> topOffenders = issueTracker.getTopOffenders(10).stream()
-            .map(entry -> new SymbolIssueCount(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
-        report.put("topOffenders", topOffenders);
+        // Top offenders
+        report.put("topOffenders", issueTracker.getTopOffenders(10));
         
-        // Issue breakdown (convert enum to string)
-        Map<String, Long> breakdown = issueTracker.getIssuesByDimension().entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> e.getKey().name(),
-                Map.Entry::getValue
-            ));
-        report.put("issuesByDimension", breakdown);
+        // Issue breakdown
+        report.put("issuesByDimension", issueTracker.getIssuesByDimension());
         
         // Configuration (as map to avoid serialization issues)
         Map<String, Object> configMap = new HashMap<>();

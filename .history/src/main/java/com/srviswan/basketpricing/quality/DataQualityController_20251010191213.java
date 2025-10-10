@@ -86,67 +86,45 @@ public class DataQualityController {
      * Get issues for a specific symbol
      */
     @GetMapping("/issues/{ric}")
-    public ResponseEntity<List<IssueRecordDTO>> getIssues(
+    public ResponseEntity<List<DataQualityIssueTracker.IssueRecord>> getIssues(
             @PathVariable String ric,
             @RequestParam(required = false, defaultValue = "1") int hours) {
         
         Instant since = Instant.now().minus(hours, ChronoUnit.HOURS);
         List<DataQualityIssueTracker.IssueRecord> issues = issueTracker.getIssues(ric, since);
         
-        // Convert to DTOs
-        List<IssueRecordDTO> dtos = issues.stream()
-            .map(issue -> IssueRecordDTO.from(issue.getRic(), issue.getResult(), issue.getTimestamp()))
-            .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(dtos);
+        return ResponseEntity.ok(issues);
     }
     
     /**
      * Get all recent issues
      */
     @GetMapping("/issues")
-    public ResponseEntity<List<IssueRecordDTO>> getAllIssues(
+    public ResponseEntity<List<DataQualityIssueTracker.IssueRecord>> getAllIssues(
             @RequestParam(required = false, defaultValue = "1") int hours) {
         
         Instant since = Instant.now().minus(hours, ChronoUnit.HOURS);
         List<DataQualityIssueTracker.IssueRecord> issues = issueTracker.getAllIssues(since);
         
-        // Convert to DTOs
-        List<IssueRecordDTO> dtos = issues.stream()
-            .map(issue -> IssueRecordDTO.from(issue.getRic(), issue.getResult(), issue.getTimestamp()))
-            .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(dtos);
+        return ResponseEntity.ok(issues);
     }
     
     /**
      * Get top offenders (symbols with most issues)
      */
     @GetMapping("/top-offenders")
-    public ResponseEntity<List<SymbolIssueCount>> getTopOffenders(
+    public ResponseEntity<List<Map.Entry<String, Long>>> getTopOffenders(
             @RequestParam(required = false, defaultValue = "10") int limit) {
         
-        // Convert Map.Entry to DTO for proper serialization
-        List<SymbolIssueCount> topOffenders = issueTracker.getTopOffenders(limit).stream()
-            .map(entry -> new SymbolIssueCount(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(topOffenders);
+        return ResponseEntity.ok(issueTracker.getTopOffenders(limit));
     }
     
     /**
      * Get issue breakdown by dimension
      */
     @GetMapping("/breakdown")
-    public ResponseEntity<Map<String, Long>> getIssueBreakdown() {
-        // Convert enum keys to strings for proper JSON serialization
-        Map<String, Long> breakdown = issueTracker.getIssuesByDimension().entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> e.getKey().name(),  // Convert ValidationDimension to String
-                Map.Entry::getValue
-            ));
-        
-        return ResponseEntity.ok(breakdown);
+    public ResponseEntity<Map<ValidationDimension, Long>> getIssueBreakdown() {
+        return ResponseEntity.ok(issueTracker.getIssuesByDimension());
     }
     
     /**
@@ -204,19 +182,11 @@ public class DataQualityController {
         DataQualityIssueTracker.QualitySummary summary = issueTracker.getSummary();
         report.put("summary", summary);
         
-        // Top offenders (convert to DTO)
-        List<SymbolIssueCount> topOffenders = issueTracker.getTopOffenders(10).stream()
-            .map(entry -> new SymbolIssueCount(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
-        report.put("topOffenders", topOffenders);
+        // Top offenders
+        report.put("topOffenders", issueTracker.getTopOffenders(10));
         
-        // Issue breakdown (convert enum to string)
-        Map<String, Long> breakdown = issueTracker.getIssuesByDimension().entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> e.getKey().name(),
-                Map.Entry::getValue
-            ));
-        report.put("issuesByDimension", breakdown);
+        // Issue breakdown
+        report.put("issuesByDimension", issueTracker.getIssuesByDimension());
         
         // Configuration (as map to avoid serialization issues)
         Map<String, Object> configMap = new HashMap<>();

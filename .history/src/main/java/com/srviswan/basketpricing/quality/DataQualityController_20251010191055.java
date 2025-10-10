@@ -1,8 +1,5 @@
 package com.srviswan.basketpricing.quality;
 
-import com.srviswan.basketpricing.quality.dto.IssueRecordDTO;
-import com.srviswan.basketpricing.quality.dto.QualitySummaryDTO;
-import com.srviswan.basketpricing.quality.dto.SymbolIssueCount;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +10,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * REST API for data quality monitoring and reporting
@@ -60,93 +56,53 @@ public class DataQualityController {
      * Get summary of data quality issues
      */
     @GetMapping("/summary")
-    public ResponseEntity<QualitySummaryDTO> getSummary() {
-        DataQualityIssueTracker.QualitySummary summary = issueTracker.getSummary();
-        
-        // Convert to DTO for proper serialization
-        QualitySummaryDTO dto = QualitySummaryDTO.builder()
-            .totalIssues(summary.getTotalIssues())
-            .affectedSymbols(summary.getAffectedSymbols())
-            .totalErrors(summary.getTotalErrors())
-            .totalWarnings(summary.getTotalWarnings())
-            .topOffenders(summary.getTopOffenders().stream()
-                .map(entry -> new SymbolIssueCount(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList()))
-            .issuesByDimension(summary.getIssuesByDimension().entrySet().stream()
-                .collect(Collectors.toMap(
-                    e -> e.getKey().name(),  // Convert enum to String
-                    Map.Entry::getValue
-                )))
-            .build();
-        
-        return ResponseEntity.ok(dto);
+    public ResponseEntity<DataQualityIssueTracker.QualitySummary> getSummary() {
+        return ResponseEntity.ok(issueTracker.getSummary());
     }
     
     /**
      * Get issues for a specific symbol
      */
     @GetMapping("/issues/{ric}")
-    public ResponseEntity<List<IssueRecordDTO>> getIssues(
+    public ResponseEntity<List<DataQualityIssueTracker.IssueRecord>> getIssues(
             @PathVariable String ric,
             @RequestParam(required = false, defaultValue = "1") int hours) {
         
         Instant since = Instant.now().minus(hours, ChronoUnit.HOURS);
         List<DataQualityIssueTracker.IssueRecord> issues = issueTracker.getIssues(ric, since);
         
-        // Convert to DTOs
-        List<IssueRecordDTO> dtos = issues.stream()
-            .map(issue -> IssueRecordDTO.from(issue.getRic(), issue.getResult(), issue.getTimestamp()))
-            .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(dtos);
+        return ResponseEntity.ok(issues);
     }
     
     /**
      * Get all recent issues
      */
     @GetMapping("/issues")
-    public ResponseEntity<List<IssueRecordDTO>> getAllIssues(
+    public ResponseEntity<List<DataQualityIssueTracker.IssueRecord>> getAllIssues(
             @RequestParam(required = false, defaultValue = "1") int hours) {
         
         Instant since = Instant.now().minus(hours, ChronoUnit.HOURS);
         List<DataQualityIssueTracker.IssueRecord> issues = issueTracker.getAllIssues(since);
         
-        // Convert to DTOs
-        List<IssueRecordDTO> dtos = issues.stream()
-            .map(issue -> IssueRecordDTO.from(issue.getRic(), issue.getResult(), issue.getTimestamp()))
-            .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(dtos);
+        return ResponseEntity.ok(issues);
     }
     
     /**
      * Get top offenders (symbols with most issues)
      */
     @GetMapping("/top-offenders")
-    public ResponseEntity<List<SymbolIssueCount>> getTopOffenders(
+    public ResponseEntity<List<Map.Entry<String, Long>>> getTopOffenders(
             @RequestParam(required = false, defaultValue = "10") int limit) {
         
-        // Convert Map.Entry to DTO for proper serialization
-        List<SymbolIssueCount> topOffenders = issueTracker.getTopOffenders(limit).stream()
-            .map(entry -> new SymbolIssueCount(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
-        
-        return ResponseEntity.ok(topOffenders);
+        return ResponseEntity.ok(issueTracker.getTopOffenders(limit));
     }
     
     /**
      * Get issue breakdown by dimension
      */
     @GetMapping("/breakdown")
-    public ResponseEntity<Map<String, Long>> getIssueBreakdown() {
-        // Convert enum keys to strings for proper JSON serialization
-        Map<String, Long> breakdown = issueTracker.getIssuesByDimension().entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> e.getKey().name(),  // Convert ValidationDimension to String
-                Map.Entry::getValue
-            ));
-        
-        return ResponseEntity.ok(breakdown);
+    public ResponseEntity<Map<ValidationDimension, Long>> getIssueBreakdown() {
+        return ResponseEntity.ok(issueTracker.getIssuesByDimension());
     }
     
     /**
@@ -204,19 +160,11 @@ public class DataQualityController {
         DataQualityIssueTracker.QualitySummary summary = issueTracker.getSummary();
         report.put("summary", summary);
         
-        // Top offenders (convert to DTO)
-        List<SymbolIssueCount> topOffenders = issueTracker.getTopOffenders(10).stream()
-            .map(entry -> new SymbolIssueCount(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
-        report.put("topOffenders", topOffenders);
+        // Top offenders
+        report.put("topOffenders", issueTracker.getTopOffenders(10));
         
-        // Issue breakdown (convert enum to string)
-        Map<String, Long> breakdown = issueTracker.getIssuesByDimension().entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> e.getKey().name(),
-                Map.Entry::getValue
-            ));
-        report.put("issuesByDimension", breakdown);
+        // Issue breakdown
+        report.put("issuesByDimension", issueTracker.getIssuesByDimension());
         
         // Configuration (as map to avoid serialization issues)
         Map<String, Object> configMap = new HashMap<>();
