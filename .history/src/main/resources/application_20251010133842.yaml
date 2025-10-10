@@ -1,6 +1,5 @@
 server:
   port: 8080
-  shutdown: graceful  # Enable graceful shutdown
   tomcat:
     threads:
       max: 200
@@ -66,13 +65,8 @@ resilience4j:
           - java.io.IOException
           - java.util.concurrent.TimeoutException
 
-# Spring configuration
+# Caching configuration
 spring:
-  # Graceful shutdown
-  lifecycle:
-    timeout-per-shutdown-phase: 30s  # Wait up to 30s for graceful shutdown
-  
-  # Caching configuration
   cache:
     type: caffeine
     caffeine:
