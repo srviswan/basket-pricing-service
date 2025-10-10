@@ -166,17 +166,8 @@ public class DataQualityController {
         // Issue breakdown
         report.put("issuesByDimension", issueTracker.getIssuesByDimension());
         
-        // Configuration (as map to avoid serialization issues)
-        Map<String, Object> configMap = new HashMap<>();
-        configMap.put("enabled", config.isEnabled());
-        configMap.put("alertingEnabled", config.isAlertingEnabled());
-        configMap.put("minPrice", config.getMinPrice());
-        configMap.put("maxPrice", config.getMaxPrice());
-        configMap.put("maxSpreadPercentage", config.getMaxSpreadPercentage());
-        configMap.put("maxAge", config.getMaxAge().toString());
-        configMap.put("maxDecimalPlaces", config.getMaxDecimalPlaces());
-        configMap.put("minQualityScore", config.getMinQualityScore());
-        report.put("config", configMap);
+        // Configuration
+        report.put("config", config);
         
         return ResponseEntity.ok(report);
     }
