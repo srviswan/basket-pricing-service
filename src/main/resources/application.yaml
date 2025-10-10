@@ -59,7 +59,11 @@ resilience4j:
       marketDataProvider:
         max-attempts: 3
         wait-duration: 100ms
-        retry-on-exception: java.lang.Exception
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
 
 # Caching configuration
 spring:
