@@ -87,20 +87,8 @@ refinitiv:
 logging:
   level:
     com.srviswan.basketpricing: INFO
-    com.srviswan.basketpricing.quality: DEBUG  # Detailed quality logging
     com.refinitiv: WARN
     io.github.resilience4j: INFO  # Changed from DEBUG to suppress optional integration warnings
     io.github.resilience4j.spring6.utils: WARN  # Suppress optional dependency checks
 
-# Data Quality Configuration
-data-quality:
-  enabled: true
-  alerting-enabled: true
-  min-price: 0.01
-  max-price: 1000000.0
-  max-spread-percentage: 10.0
-  max-age: 60s
-  max-decimal-places: 6
-  min-quality-score: 95.0
-  circuit-breaker-threshold: 10
 
